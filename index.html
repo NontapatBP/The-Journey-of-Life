@@ -2666,6 +2666,13 @@
               <button class="btn-night" type="button"><svg class="icon"><use href="#icon-moon"></use></svg> กลางคืน</button>
             </div>
           </div>
+          <div class="setting-row">
+            <div class="setting-copy">
+              <strong>ความเร็วการอ่านข้อความ</strong>
+              <div class="setting-hint">กำหนดจังหวะการเล่าเรื่องก่อนคำถามสะท้อนใจหรือทางเลือกจะปรากฏ</div>
+            </div>
+            <button class="metric-pill" id="reading-speed-label" type="button" aria-label="ปรับความเร็วการอ่านข้อความ">อ่านข้อความช้า</button>
+          </div>
           <div class="preview-box">นี่คือกล่องตัวอย่างข้อความ เพื่อให้คุณเห็นขนาดตัวอักษรและบรรยากาศแสงก่อนเริ่มเดินทาง</div>
         </section>
 
@@ -3188,6 +3195,7 @@
         this.currentSceneIndex = 0;
         this.isNightMode = false;
         this.textSizeIndex = 0;
+        this.readingSpeedIndex = 0;
         this.motionSpeedIndex = 1;
         this.masterVolume = 72;
         this.audioEnabled = true;
@@ -3206,6 +3214,7 @@
             collectedVerses: this.collectedVerses,
             isNightMode: this.isNightMode,
             textSizeIndex: this.textSizeIndex,
+            readingSpeedIndex: this.readingSpeedIndex,
             motionSpeedIndex: this.motionSpeedIndex,
             masterVolume: this.masterVolume,
             audioEnabled: this.audioEnabled,
@@ -3318,7 +3327,7 @@
         this.svg = svgElement;
         this.container = document.getElementById("map-container");
         this.baseWidth = 2200;
-        this.baseHeight = 2800;
+        this.baseHeight = 4000;
         this.camera = {
           x: 0,
           y: 0,
@@ -3376,7 +3385,7 @@
 
       generatePathPoints(width, height, count) {
         const points = [];
-        const margin = 140;
+        const margin = 180;
         for (let index = 0; index < count; index += 1) {
           const t = index / Math.max(1, count - 1);
           const y = margin + t * (height - margin * 2);
@@ -3511,14 +3520,25 @@
         }
 
         const state = this.getNodeState(chapter, this.lastProgress);
+        const volume = STORY_DATA.volumes.find((item) => item.id === chapter.volumeId);
+        const isCompact = this.isCompactLayout();
         const statusLabel = {
           current: "โฟกัสที่บทที่กำลังเดินอยู่",
           complete: "โฟกัสที่บทล่าสุดที่สำเร็จ",
           unlocked: "โฟกัสที่บทถัดไปที่เปิดแล้ว",
           locked: "เส้นทางที่กำลังรออยู่"
         }[state] || "เส้นทางล่าสุดของคุณ";
-        const shortTitle = chapter.titleThai.length > 20 ? `${chapter.titleThai.slice(0, 20)}...` : chapter.titleThai;
-        instruction.innerHTML = `${statusLabel}<br>บทที่ ${chapter.id}: ${shortTitle}`;
+        const shortTitle = chapter.titleThai.length > (isCompact ? 14 : 20)
+          ? `${chapter.titleThai.slice(0, isCompact ? 14 : 20)}...`
+          : chapter.titleThai;
+        const detailLine = isCompact && volume
+          ? `เล่ม ${volume.id} • บท ${chapter.id}: ${shortTitle}`
+          : `บทที่ ${chapter.id}: ${shortTitle}`;
+        instruction.innerHTML = `${statusLabel}<br>${detailLine}`;
+      }
+
+      isCompactLayout() {
+        return (this.container ? this.container.clientWidth : window.innerWidth) <= 560;
       }
 
       shouldShowChapterLabel(index, state) {
@@ -3662,8 +3682,8 @@
         futurePath.setAttribute("d", pathData);
         futurePath.setAttribute("fill", "none");
         futurePath.setAttribute("stroke", "rgba(201, 168, 76, 0.32)");
-        futurePath.setAttribute("stroke-width", "16");
-        futurePath.setAttribute("stroke-dasharray", "24 16");
+        futurePath.setAttribute("stroke-width", "12");
+        futurePath.setAttribute("stroke-dasharray", "18 14");
         this.svg.appendChild(futurePath);
 
         const completedCount = Object.values(progress).filter((item) => item.complete).length;
@@ -3682,7 +3702,7 @@
         donePath.setAttribute("d", donePathData);
         donePath.setAttribute("fill", "none");
         donePath.setAttribute("stroke", "#C9A84C");
-        donePath.setAttribute("stroke-width", "24");
+        donePath.setAttribute("stroke-width", "16");
         donePath.setAttribute("stroke-linecap", "round");
         donePath.style.strokeDasharray = "3000";
         donePath.style.strokeDashoffset = "3000";
@@ -3697,17 +3717,17 @@
 
         if (state === "current") {
           const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          ring.setAttribute("r", "72");
+          ring.setAttribute("r", "42");
           ring.setAttribute("fill", "none");
           ring.setAttribute("stroke", "#C9A84C");
-          ring.setAttribute("stroke-width", "8");
+          ring.setAttribute("stroke-width", "6");
           ring.setAttribute("opacity", "0.5");
           ring.style.animation = "nodePulse 2s ease infinite";
           group.appendChild(ring);
         }
 
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("r", "50");
+        circle.setAttribute("r", "28");
         circle.setAttribute("fill", {
           locked: "#555566",
           unlocked: "#F5ECD7",
@@ -3715,13 +3735,13 @@
           complete: "#C9A84C"
         }[state]);
         circle.setAttribute("stroke", state === "locked" ? "#333" : "#C9A84C");
-        circle.setAttribute("stroke-width", "6");
+        circle.setAttribute("stroke-width", "4");
         group.appendChild(circle);
 
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
         label.setAttribute("text-anchor", "middle");
         label.setAttribute("dominant-baseline", "central");
-        label.setAttribute("font-size", "56");
+        label.setAttribute("font-size", "30");
         label.setAttribute("font-weight", "700");
         label.setAttribute("fill", state === "current" || state === "complete" ? "#1A2744" : "#888");
         label.setAttribute("font-family", "Sarabun, sans-serif");
@@ -3762,16 +3782,20 @@
       }
 
       drawVolumeLabels(points, width) {
+        if (this.isCompactLayout()) {
+          return;
+        }
+
         STORY_DATA.volumes.forEach((volume, index) => {
           const point = points[index * 5];
           if (!point) {
             return;
           }
           const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          text.setAttribute("x", point.x > width / 2 ? point.x - 360 : point.x + 360);
-          text.setAttribute("y", point.y - 96);
+          text.setAttribute("x", point.x > width / 2 ? point.x - 300 : point.x + 300);
+          text.setAttribute("y", point.y - 120);
           text.setAttribute("text-anchor", "middle");
-          text.setAttribute("font-size", "46");
+          text.setAttribute("font-size", "34");
           text.setAttribute("font-weight", "700");
           text.setAttribute("fill", volume.colorHex);
           text.setAttribute("font-family", "Sarabun, sans-serif");
@@ -4003,6 +4027,7 @@
       render() {
         this.renderTextSizeOptions();
         this.renderThemeToggle();
+        this.renderReadingSpeedControl();
         this.renderAudioToggles();
         this.renderMotionSpeedControl();
         this.renderStatsPanel();
@@ -4100,6 +4125,17 @@
         };
       }
 
+      renderReadingSpeedControl() {
+        const button = document.getElementById("reading-speed-label");
+        const labels = ["อ่านข้อความช้า", "ปกติ", "เร็ว"];
+        button.textContent = labels[appState.readingSpeedIndex] || labels[0];
+        button.onclick = () => {
+          appState.readingSpeedIndex = (appState.readingSpeedIndex + 1) % labels.length;
+          appState.save();
+          this.renderReadingSpeedControl();
+        };
+      }
+
       renderStatsPanel() {
         const completedChapters = Object.values(appState.progress).filter((entry) => entry.complete).length;
         document.querySelector(".stat-chapters").textContent = `${completedChapters} / 60`;
@@ -4192,6 +4228,7 @@
           theme: appState.isNightMode ? "night" : "day",
           settings: {
             textSizeIndex: appState.textSizeIndex,
+            readingSpeedIndex: appState.readingSpeedIndex,
             motionSpeedIndex: appState.motionSpeedIndex,
             audioEnabled: appState.audioEnabled,
             narrationEnabled: appState.narrationEnabled,
@@ -4797,20 +4834,30 @@
       }
 
       getNarrationStepDelay(segmentCount) {
+        const profile = [
+          { short: 320, medium: 270, long: 230, extended: 205 },
+          { short: 255, medium: 220, long: 190, extended: 170 },
+          { short: 205, medium: 180, long: 155, extended: 140 }
+        ][appState.readingSpeedIndex] || { short: 320, medium: 270, long: 230, extended: 205 };
         if (segmentCount <= 8) {
-          return 320;
+          return profile.short;
         }
         if (segmentCount <= 14) {
-          return 270;
+          return profile.medium;
         }
         if (segmentCount <= 22) {
-          return 230;
+          return profile.long;
         }
-        return 205;
+        return profile.extended;
       }
 
       getNarrationSettlingDelay(segmentCount) {
-        return Math.max(900, Math.min(1800, segmentCount * 95));
+        const profile = [
+          { min: 900, max: 1800, factor: 95 },
+          { min: 650, max: 1350, factor: 72 },
+          { min: 420, max: 960, factor: 52 }
+        ][appState.readingSpeedIndex] || { min: 900, max: 1800, factor: 95 };
+        return Math.max(profile.min, Math.min(profile.max, segmentCount * profile.factor));
       }
 
       updateSceneDots(current, total) {
