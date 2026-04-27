@@ -4767,13 +4767,14 @@
 
       async playNarration(text) {
         const narrationElement = document.querySelector(".narration-text");
-        const words = text.split(" ");
-        narrationElement.innerHTML = words.map((word, index) => `<span class="word" data-index="${index}">${word} </span>`).join("");
+        const segments = text.trim().split(/\s+/).filter(Boolean);
+        const stepDelay = this.getNarrationStepDelay(segments.length);
+        narrationElement.innerHTML = segments.map((segment, index) => `<span class="word" data-index="${index}">${segment} </span>`).join("");
 
         const token = ++this.narrationToken;
         audioEngine.speakThai(text);
 
-        for (let index = 0; index < words.length; index += 1) {
+        for (let index = 0; index < segments.length; index += 1) {
           if (token !== this.narrationToken) {
             return;
           }
@@ -4785,8 +4786,31 @@
           if (current) {
             current.classList.add("active");
           }
-          await this.delay(95);
+          await this.delay(stepDelay);
         }
+
+        if (token !== this.narrationToken) {
+          return;
+        }
+
+        await this.delay(this.getNarrationSettlingDelay(segments.length));
+      }
+
+      getNarrationStepDelay(segmentCount) {
+        if (segmentCount <= 8) {
+          return 320;
+        }
+        if (segmentCount <= 14) {
+          return 270;
+        }
+        if (segmentCount <= 22) {
+          return 230;
+        }
+        return 205;
+      }
+
+      getNarrationSettlingDelay(segmentCount) {
+        return Math.max(900, Math.min(1800, segmentCount * 95));
       }
 
       updateSceneDots(current, total) {
